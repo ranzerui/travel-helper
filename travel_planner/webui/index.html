@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>行程助手 · 本地版</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel-2:#1e222b; --line:#2a2f3a;
+    --text:#e8ecf3; --muted:#9aa4b2; --accent:#5b8cff; --ok:#34d399;
+    --warn:#fbbf24; --err:#f87171; --chip:#232936;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.65 "Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;padding:18px 16px 132px;}
+  header{display:flex;align-items:center;gap:12px;padding:6px 4px 16px;flex-wrap:wrap}
+  .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#5b8cff,#8b5cf6);
+    display:grid;place-items:center;font-size:18px}
+  h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.2px}
+  .sub{color:var(--muted);font-size:12px}
+  .spacer{flex:1}
+  .status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#6b7280}
+  .dot.on{background:var(--ok);box-shadow:0 0 8px rgba(52,211,153,.6)}
+  .modes{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);
+    padding:3px;border-radius:10px}
+  .modes button{background:none;border:0;color:var(--muted);font-size:12px;padding:6px 12px;
+    border-radius:8px;cursor:pointer;transition:.15s}
+  .modes button:hover{color:var(--text)}
+  .modes button.active{background:var(--chip);color:var(--text)}
+  .msg{display:flex;gap:10px;margin:14px 0;animation:in .22s ease}
+  @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .avatar{width:28px;height:28px;border-radius:8px;flex:none;display:grid;place-items:center;font-size:14px}
+  .me .avatar{background:#2b3446}
+  .bot .avatar{background:linear-gradient(135deg,#5b8cff,#8b5cf6)}
+  .bubble{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:10px 14px;max-width:100%;overflow:hidden}
+  .me .bubble{background:var(--panel-2)}
+  .prog{color:var(--muted);font-size:13px}
+  .prog div{padding:2px 0;display:flex;gap:8px;align-items:flex-start}
+  .prog .tick{color:var(--ok)}
+  .prog .live{color:var(--accent);animation:pulse 1.2s infinite}
+  @keyframes pulse{50%{opacity:.45}}
+  table{width:100%;border-collapse:collapse;margin:8px 0 4px;font-size:13px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:12px}
+  .day{margin:14px 0 6px;font-weight:600;font-size:14px}
+  .day small{color:var(--muted);font-weight:400;margin-left:8px;font-size:12px}
+  .tag{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;
+    background:var(--chip);color:var(--muted);margin-left:6px}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
+  .kv{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--muted)}
+  .kv b{color:var(--text);font-weight:600}
+  .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:6px;background:var(--chip);color:var(--text);
+    border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:13px;text-decoration:none;cursor:pointer}
+  .btn:hover{border-color:#3b4353}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 16px}
+  .chips button{background:transparent;border:1px dashed var(--line);color:var(--muted);
+    border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer}
+  .chips button:hover{color:var(--text);border-color:#3b4353}
+  .composer{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg,transparent,var(--bg) 34%);
+    padding:14px 16px 18px}
+  .composer .inner{max-width:920px;margin:0 auto;display:flex;gap:10px;align-items:flex-end;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 8px 8px 14px}
+  textarea{flex:1;background:none;border:0;color:var(--text);resize:none;font:inherit;
+    outline:none;max-height:120px;padding:6px 0}
+  textarea::placeholder{color:#6b7280}
+  .send{background:var(--accent);border:0;color:#fff;width:38px;height:38px;border-radius:10px;
+    cursor:pointer;font-size:16px;display:grid;place-items:center}
+  .send:disabled{opacity:.45;cursor:not-allowed}
+  .hint{text-align:center;color:#5b6373;font-size:11px;margin-top:8px}
+  a{color:var(--accent)}
+  code{background:#11141a;padding:1px 5px;border-radius:5px;font-size:12px}
+  .review-toggle{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;margin:0 4px 12px}
+  .evidence-card{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+  .evidence-card h3{margin:0 0 8px;font-size:14px}
+  .evidence-card a{overflow-wrap:anywhere}
+  .evidence-card blockquote{margin:8px 0;padding:6px 10px;border-left:3px solid var(--accent);font-size:13px}
+  .evidence-card img{display:block;width:100%;height:260px;object-fit:cover;object-position:left top;margin:8px 0;border-radius:6px;background:#fff}
+  .review-change{padding:8px 10px;margin:8px 0;border-left:3px solid var(--warn);font-size:13px}
+
+  /* 设置 */
+  .gear{background:var(--panel);border:1px solid var(--line);color:#c7ccd6;width:34px;height:34px;
+    border-radius:10px;cursor:pointer;font-size:16px}
+  .gear:hover{border-color:var(--accent);color:#fff}
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;
+    align-items:center;justify-content:center}
+  .modal.open{display:flex}
+  .modal-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(520px,92vw);
+    padding:18px 20px;max-height:86vh;overflow:auto}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .modal-head .close{background:none;border:0;color:#8b93a1;font-size:22px;cursor:pointer;line-height:1}
+  .field{display:block;margin-bottom:14px}
+  .field span{display:block;font-size:12px;color:#8b93a1;margin-bottom:6px}
+  .field em{font-style:normal;color:#5b6373;margin-left:6px}
+  .field select,.field input{width:100%;box-sizing:border-box;background:#11141a;border:1px solid var(--line);
+    color:var(--text);border-radius:9px;padding:9px 11px;font:inherit}
+  .field input+select,.field select+input{margin-top:8px}
+  .field input::placeholder{color:#5b6373}
+  .modal-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px}
+  .tip{font-size:12px;color:#8b93a1}
+  .modal-notes{font-size:12px;margin-top:10px;line-height:1.7}
+  .modal-notes .ok{color:var(--ok)}
+  .modal-notes .err{color:var(--err)}
+  .btn.primary{background:var(--accent);border:0;color:#fff;padding:9px 16px;border-radius:9px;cursor:pointer}
+  .btn.primary:disabled{opacity:.5;cursor:not-allowed}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🧭</div>
+    <div>
+      <h1>行程助手 · 本地版</h1>
+      <div class="sub">说需求，它排行程，并自己校验时间与预算</div>
+      <div class="sub" id="buildInfo" style="font-size:11px;color:#5b6373"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">检查模型…</span></div>
+    <div class="modes" id="modes">
+      <button data-mode="auto" class="active">自动 · 任意城市</button>
+      <button data-mode="offline">离线 · 已有城市</button>
+      <button data-mode="model">本地模型</button>
+    </div>
+    <button class="gear" id="gearBtn" title="设置：换模型 / 换高德 key">⚙</button>
+  </header>
+
+  <div class="modal" id="settingsModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <strong>设置</strong>
+        <button class="close" id="closeSettings" title="关闭">×</button>
+      </div>
+
+      <label class="field">
+        <span>Ollama 模型</span>
+        <select id="modelSelect"></select>
+        <input id="modelInput" placeholder="或手动输入模型名，例如 qwen3:8b" />
+      </label>
+
+      <label class="field">
+        <span>Ollama 地址</span>
+        <input id="hostInput" placeholder="http://127.0.0.1:11434" />
+      </label>
+
+      <label class="field">
+        <span>高德 Key（Web 服务）<em id="keyState"></em></span>
+        <input id="keyInput" type="password" placeholder="留空表示不修改；填新 key 会先校验再保存" />
+      </label>
+
+      <div class="modal-foot">
+        <span class="tip" id="settingsTip"></span>
+        <button class="btn primary" id="saveSettings">保存并生效</button>
+      </div>
+      <div class="modal-notes" id="settingsNotes"></div>
+    </div>
+  </div>
+
+  <label class="review-toggle"><input type="checkbox" id="browserReview" checked>核验景点官网公告，展示网址和网页截图（离线模式跳过）</label>
+  <div class="chips" id="chips">
+    <button>北京两天，预算 1500，喜欢人文</button>
+    <button>成都两天，预算 1200，喜欢人文</button>
+    <button>成都三天，带爸妈，别太赶，多看文物古迹</button>
+    <button>成都一天，预算 400，只看免费景点</button>
+  </div>
+
+  <div id="chat"></div>
+</div>
+
+<div class="composer">
+  <div class="inner">
+    <textarea id="input" rows="1" placeholder="例如：成都两天，预算 1200，喜欢人文，节奏慢一点"></textarea>
+    <button class="send" id="send" title="发送">↑</button>
+  </div>
+  <div class="hint">Enter 发送 · Shift+Enter 换行 · 数据与模型都在本机</div>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+const dot = document.getElementById('dot');
+const statusText = document.getElementById('statusText');
+let mode = 'auto';   // 默认：按需联网取城市数据
+let busy = false;
+let lastBase = null;   // 上一版需求，用于多轮追问
+
+/* ---------- 小工具 ---------- */
+const el = (tag, cls, text) => {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
+};
+const money = n => '¥' + Number(n).toLocaleString('zh-CN', {maximumFractionDigits: 2});
+
+function bubble(who, avatarText) {
+  const row = el('div', 'msg ' + who);
+  const av = el('div', 'avatar', avatarText);
+  const body = el('div', 'bubble');
+  row.append(av, body);
+  chat.appendChild(row);
+  chat.scrollIntoView({block: 'end'});
+  return body;
+}
+
+/* ---------- 顶部状态 ---------- */
+fetch('/api/health').then(r => r.json()).then(d => {
+  dot.className = 'dot' + (d.ollama ? ' on' : '');
+  statusText.textContent = d.ollama ? `模型在线 · ${d.model}` : '模型未启动（离线模式可用）';
+  if (d.amap === false) {
+    statusText.textContent += ' · 未配高德key';
+  }
+  const info = document.getElementById('buildInfo');
+  if (info) info.textContent = `构建 ${d.build || '?'} · 城市数据 ${d.cities || 0} 个 · 高德 ${d.amap ? '已配' : '未配'}`;
+  if (info) info.textContent += ` · 官网核验 ${d.browser_review ? '环境已配置' : '未配置'}`;
+}).catch(() => {
+  statusText.textContent = '服务未响应';
+});
+
+/* ---------- 模式切换 ---------- */
+document.getElementById('modes').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn || busy) return;
+  mode = btn.dataset.mode;
+  [...e.currentTarget.children].forEach(b => b.classList.toggle('active', b === btn));
+});
+
+/* ---------- 发送 ---------- */
+document.getElementById('chips').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (btn) { input.value = btn.textContent; send(); }
+});
+
+sendBtn.addEventListener('click', send);
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+function send(forceRefine) {
+  const q = input.value.trim();
+  if (!q || busy) return;
+  input.value = ''; input.style.height = 'auto';
+  bubble('me', '我').textContent = q;
+
+  const body = bubble('bot', '🧭');
+  const progress = el('div', 'prog');
+  body.appendChild(progress);
+  const line = el('div');
+  line.innerHTML = '<span class="live">●</span><span>开始处理…</span>';
+  progress.appendChild(line);
+
+  busy = true; sendBtn.disabled = true;
+
+  // 有上一版、且这句话像是"调整"，就带上基础需求做成追问
+  const looksLikeRefine = /^(再|改|换|加|减|多|少|别|预算|调整)/.test(q) || q.length <= 12;
+  const followup = lastBase && (forceRefine || looksLikeRefine);
+  let url = `/api/plan/stream?q=${encodeURIComponent(q)}&mode=${mode}`;
+  url += `&browser_review=${document.getElementById('browserReview').checked ? '1' : '0'}`;
+  if (followup) {
+    const b = lastBase;
+    url += `&refine=1&base_city=${encodeURIComponent(b.city)}&base_days=${b.days}`
+         + `&base_budget=${b.budget}&base_prefer=${encodeURIComponent(b.prefer || '')}`
+         + `&base_pace=${encodeURIComponent(b.pace || '')}&base_start=${encodeURIComponent(b.start || '09:00')}`
+         + `&base_end=${encodeURIComponent(b.end || '20:00')}&base_must=${encodeURIComponent(b.must || '')}`
+         + `&base_start_date=${encodeURIComponent(b.start_date || '')}`;
+    url += `&base_budget_source=${encodeURIComponent(b.budget_source || '')}`;
+  }
+  const es = new EventSource(url);
+  let stages = [];
+
+  es.onmessage = ev => {
+    let data;
+    try { data = JSON.parse(ev.data); } catch { return; }
+    if (data.type === 'stage') {
+      stages.push(data.text);
+      renderStages(progress, stages, true);
+    } else if (data.type === 'done') {
+      es.close();
+      renderStages(progress, stages, false);
+      renderResult(body, data.payload);
+      finish();
+    } else if (data.type === 'error') {
+      es.close();
+      renderStages(progress, stages, false);
+      const err = el('div', 'err', '出错了：' + data.text);
+      body.appendChild(err);
+      finish();
+    }
+  };
+  es.onerror = () => {
+    es.close();
+    if (busy) {
+      body.appendChild(el('div', 'err', '连接中断，请重试'));
+      finish();
+    }
+  };
+
+  function finish() { busy = false; sendBtn.disabled = false; chat.scrollIntoView({block: 'end'}); }
+}
+
+function renderStages(container, stages, running) {
+  container.textContent = '';
+  stages.forEach((text, i) => {
+    const row = el('div');
+    const last = i === stages.length - 1;
+    const mark = (running && last) ? '<span class="live">●</span>' : '<span class="tick">✓</span>';
+    row.innerHTML = mark + '<span></span>';
+    row.lastChild.textContent = text;
+    container.appendChild(row);
+  });
+}
+
+/* ---------- 结果卡片 ---------- */
+function renderResult(body, p) {
+  // 需求摘要
+  const head = el('div', 'kv');
+  head.innerHTML = `<span>需求：<b>${escapeHtml(p.requirements.text)}</b></span>
+    <span>理解来源：<b>${escapeHtml(p.requirements.source)}</b></span>
+    <span>数据：<b>${escapeHtml(p.data_source)}</b></span>`;
+  body.appendChild(head);
+  if (p.requirements.start_date) {
+    body.appendChild(el('div', 'prog', `出游日期：${p.requirements.start_date} · ${p.requirements.date_source || ''}`));
+  }
+  if (p.requirements.budget_source) body.appendChild(el('div', 'prog', '预算依据：' + p.requirements.budget_source));
+  if (p.data_notes && p.data_notes.length) {
+    const note = el('div', 'prog');
+    p.data_notes.slice(0, 3).forEach(t => note.appendChild(el('div', '', '· ' + t)));
+    body.appendChild(note);
+  }
+
+  // 校验结论
+  const check = el('div', p.checks.ok ? (p.budget.complete ? 'ok' : 'warn') : 'err');
+  check.style.marginTop = '10px';
+  check.textContent = p.checks.ok
+    ? (p.budget.complete ? `时间线校验通过，费用在预算内（估算，${p.checks.warnings.length} 个提示）` : '时间线及已知费用校验通过；预算待核实，不能确认结余')
+    : `校验未通过：${p.checks.errors[0]}`;
+  body.appendChild(check);
+  p.checks.warnings.forEach(w => body.appendChild(el('div', 'warn', '提示：' + w)));
+
+  // 每天
+  p.days.forEach(day => {
+    const title = el('div', 'day');
+    title.innerHTML = `Day ${day.index} · ${day.date}（${day.weekday}）<small>${day.legs.length ? day.legs[0].arrive + '–' + day.end : '空'}</small>`;
+    body.appendChild(title);
+    if (!day.legs.length) { body.appendChild(el('div', 'prog', '当天没有安排')); return; }
+    const table = el('table');
+    table.innerHTML = '<tr><th>时间</th><th>安排</th><th>交通</th><th>门票</th><th>开放</th></tr>';
+    day.legs.forEach(leg => {
+      const tr = el('tr');
+      tr.innerHTML = `<td>${leg.arrive}–${leg.depart}</td>
+        <td>${escapeHtml(leg.name)}<span class="tag">${escapeHtml(leg.source)}</span></td>
+        <td>${leg.travel ? leg.travel + ' 分钟' : '—'}</td>
+        <td>${leg.ticket == null ? '待核实' : (['reference', 'search'].includes(leg.ticket_status) ? (leg.ticket_status === 'search' ? '搜索参考 ' : '参考 ') + money(leg.ticket) + '（待核实）' : (leg.ticket === 0 ? '免费' : money(leg.ticket)) + (leg.ticket_status === 'official' ? '（官网）' : '（本地）'))}</td>
+        <td>${leg.open}–${leg.close}</td>`;
+      table.appendChild(tr);
+    });
+    body.appendChild(table);
+  });
+
+  // 预算
+  const b = p.budget;
+  const budget = el('div', 'kv');
+  budget.innerHTML = `<span>用户总预算 <b>${money(b.budget)}</b></span>
+    <span>门票小计 <b>${money(b.ticket)}</b></span>
+    <span>餐饮估算 <b>${money(b.meal)}</b></span>
+    <span>市内交通估算 <b>${money(b.transport)}</b></span>
+    <span>小计/估算 <b>${money(b.total)}</b></span>
+    <span>${b.complete ? (b.left >= 0 ? '估算结余' : '估算超支') + ' ' + money(Math.abs(b.left)) : '票价待核实，余额未确认'}</span>`;
+  body.appendChild(budget);
+  if (b.scope) body.appendChild(el('div', 'prog', b.scope));
+  if (b.assumptions) body.appendChild(el('div', 'prog', b.assumptions));
+  if (b.unknown_tickets?.length) body.appendChild(el('div', 'warn', '门票待核实：' + b.unknown_tickets.join('、')));
+  if (p.browser_review?.status === 'failed') body.appendChild(el('div', 'warn', p.browser_review.message));
+  p.days.forEach(day => day.legs.forEach(leg => {
+    const evidence = leg.ticket_evidence;
+    if (!evidence || !['official', 'local', 'search'].includes(evidence.status)) return;
+    const details = el('details', 'prog');
+    details.appendChild(el('summary', '', `${leg.name} · ${day.date} · 门票依据`));
+    details.appendChild(el('blockquote', '', evidence.quote));
+    if (evidence.status === 'search') details.appendChild(el('div', 'warn', (evidence.engine || '') + '搜索摘要参考，未经官网核实；按所列条件估算'));
+    details.appendChild(el('div', '', `${evidence.ticket_type} · ${evidence.captured_at || '时间未标注'}`));
+    const link = el('a', '', evidence.url);
+    link.href = evidence.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    details.appendChild(link);
+    if (evidence.screenshot_url) {
+      const screenshot = el('a', '', '查看搜索价格截图');
+      screenshot.href = evidence.screenshot_url;
+      screenshot.target = '_blank';
+      screenshot.rel = 'noopener';
+      details.appendChild(screenshot);
+    }
+    body.appendChild(details);
+  }));
+
+  // 决策记录
+  const t = p.trace;
+  const trace = el('div', 'prog');
+  trace.style.marginTop = '10px';
+  trace.appendChild(el('div', '', `规划来源：${t.source}${t.model ? ' · ' + t.model : ''}`));
+  (t.rounds || []).forEach(r => trace.appendChild(el('div', '',
+    `第 ${r.round} 轮：选 ${r.spots} 个景点，${r.errors.length ? '校验没通过（' + r.errors.length + ' 个问题）' : '校验通过'}`)));
+  if (t.filled) trace.appendChild(el('div', '', `代码补排：${t.filled} 个景点`));
+  if (t.notes) trace.appendChild(el('div', '', '说明：' + t.notes));
+  body.appendChild(trace);
+  renderBrowserReview(body, p.browser_review);
+
+  // 下载
+  const actions = el('div', 'actions');
+  actions.innerHTML = `<a class="btn" href="/files/${encodeURIComponent(p.files.ics)}">📅 下载日历 (.ics)</a>
+    <a class="btn" href="/files/${encodeURIComponent(p.files.md)}">📄 查看报告 (.md)</a>`;
+  body.appendChild(actions);
+
+  // 记下这一版需求，并在下面挂一排"继续追问"的按钮
+  lastBase = p.base || null;
+  if (lastBase) {
+    const follow = el('div', 'chips');
+    follow.style.marginTop = '12px';
+    ['再紧凑一点', '预算改成 800', '加一天', '换自然景点', '改成两天'].forEach(text => {
+      const btn = el('button', '', text);
+      btn.onclick = () => { if (!busy) { input.value = text; send(true); } };
+      follow.appendChild(btn);
+    });
+    body.appendChild(follow);
+  }
+}
+
+function renderBrowserReview(body, review) {
+  if (!review) return;
+  body.appendChild(el('div', 'day', '官网核验与行程调整'));
+  body.appendChild(el('div', 'prog', review.message));
+  (review.changes || []).forEach(change => {
+    const card = el('div', 'review-change');
+    const destination = change.after.length ? change.after.join('、') : '移除并补排其他景点';
+    card.appendChild(el('div', '', `${change.name}：${change.before.join('、')} → ${destination}`));
+    card.appendChild(el('div', 'prog', '调整依据：' + change.reason));
+    body.appendChild(card);
+  });
+  if ((review.changes || []).length) {
+    const initial = el('details', 'prog');
+    initial.appendChild(el('summary', '', '查看官网核验前的初版行程'));
+    (review.initial || []).forEach(day => initial.appendChild(el('div', '', `${day.date}：${day.spots.join(' → ') || '空'}`)));
+    body.appendChild(initial);
+  }
+  (review.checked || []).forEach(item => {
+    const card = el('div', 'evidence-card');
+    card.appendChild(el('h3', '', item.name + (item.status === 'captured' ? ' · 已采集官网证据' : ' · 核验未完成')));
+    if (item.source_method) card.appendChild(el('div', 'prog', '来源方式：' + item.source_method));
+    if (item.ticket_search) {
+      const search = item.ticket_search;
+      const details = el('details');
+      details.appendChild(el('summary', '', '查看票价搜索过程（百度、必应及 360 回退）'));
+      details.appendChild(el('div', '', '搜索词：' + (search.query || item.name + ' 门票多少钱')));
+      (search.attempts || []).forEach(attempt => {
+        const link = el('a', '', attempt.engine + '：' + attempt.url);
+        link.href = attempt.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        details.appendChild(link);
+        if (attempt.submitted) details.appendChild(el('div', 'prog', `已按回车提交：${attempt.query}；景点匹配结果 ${attempt.matched_result_count || 0} 条`));
+        if (attempt.answer_wait?.status) details.appendChild(el('div', 'prog', attempt.answer_wait.status === 'ready' ? '已等待首栏回答稳定后提取' : '首栏回答尚未完成，本次未采信'));
+        if (!(attempt.prices || []).length && attempt.answer_wait?.first_card) details.appendChild(el('blockquote', '', '首栏原文：' + attempt.answer_wait.first_card));
+        if (attempt.error) details.appendChild(el('div', 'warn', attempt.error));
+        (attempt.prices || []).forEach(price => details.appendChild(el('blockquote', '', '搜索参考：' + price.quote)));
+        const page = attempt.page || attempt.blocked_page;
+        if (page?.screenshot_url) {
+          const imageLink = el('a');
+          imageLink.href = page.ticket_screenshot_url || page.screenshot_url;
+          imageLink.target = '_blank';
+          imageLink.rel = 'noopener';
+          const image = el('img');
+          image.src = imageLink.href;
+          image.alt = attempt.engine + '票价搜索网页截图';
+          image.loading = 'lazy';
+          imageLink.appendChild(image);
+          details.appendChild(imageLink);
+        }
+      });
+      if (search.error) details.appendChild(el('div', 'warn', search.error));
+      card.appendChild(details);
+    }
+    if (item.discovery) {
+      const discovery = item.discovery;
+      const details = el('details');
+      details.appendChild(el('summary', '', '查看自动搜索过程与来源判断'));
+      details.appendChild(el('div', '', '搜索词：' + discovery.query));
+      const link = el('a', '', discovery.search_url);
+      link.href = discovery.search_url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      details.appendChild(link);
+      if (discovery.identity) {
+        details.appendChild(el('div', 'prog', discovery.identity.reason));
+        details.appendChild(el('blockquote', '', discovery.identity.quote));
+      }
+      (discovery.attempts || []).filter(attempt => !attempt.matched).forEach(attempt => {
+        details.appendChild(el('div', 'prog', `${attempt.url}：${attempt.reason}`));
+      });
+      if (discovery.fallback) details.appendChild(el('div', 'prog', discovery.fallback));
+      if (discovery.search_warning) details.appendChild(el('div', 'warn', '搜索页：' + discovery.search_warning));
+      (discovery.search_attempts || []).forEach(attempt => {
+        details.appendChild(el('div', 'prog', `${attempt.engine}：${attempt.submitted ? '已按回车提交' : '未完成提交'}；景点匹配结果 ${attempt.matched_result_count || 0} 条`));
+        if (attempt.error) details.appendChild(el('div', 'warn', attempt.error));
+      });
+      if (discovery.search_page?.screenshot_url) {
+        const imageLink = el('a');
+        imageLink.href = discovery.search_page.screenshot_url;
+        imageLink.target = '_blank';
+        imageLink.rel = 'noopener';
+        const image = el('img');
+        image.src = discovery.search_page.screenshot_url;
+        image.alt = item.name + '自动搜索网页截图';
+        image.loading = 'lazy';
+        imageLink.appendChild(image);
+        details.appendChild(imageLink);
+      }
+      card.appendChild(details);
+    }
+    if (item.error) card.appendChild(el('div', 'warn', item.error));
+    (item.warnings || []).forEach(text => card.appendChild(el('div', 'warn', text)));
+    (item.pages || []).forEach(page => {
+      const details = el('details');
+      details.open = true;
+      details.appendChild(el('summary', '', page.title || '官网页面'));
+      const link = el('a', '', page.url);
+      link.href = page.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      details.appendChild(link);
+      details.appendChild(el('div', 'sub', '采集时间：' + page.captured_at));
+      (page.ticket_prices || []).forEach(price => details.appendChild(el('blockquote', '', '票价原文：' + price.quote)));
+      if (page.ticket_screenshot_url) {
+        const link = el('a', '', '查看票价区域截图');
+        link.href = page.ticket_screenshot_url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        details.appendChild(link);
+      }
+      const keyFinding = (page.findings || []).find(finding => finding.effective_start) || (page.findings || [])[0];
+      if (keyFinding) details.appendChild(el('blockquote', '', keyFinding.quote));
+      if (!(page.findings || []).length) details.appendChild(el('div', 'prog', '当前页面未识别到相关规则，开放情况仍需确认'));
+      if (page.screenshot_url) {
+        const imageLink = el('a');
+        imageLink.href = page.screenshot_url;
+        imageLink.target = '_blank';
+        imageLink.rel = 'noopener';
+        const image = el('img');
+        image.src = page.screenshot_url;
+        image.alt = item.name + '官网网页截图';
+        image.loading = 'lazy';
+        imageLink.appendChild(image);
+        details.appendChild(imageLink);
+        details.appendChild(el('div', 'sub', '点击截图查看原图'));
+      }
+      if ((page.findings || []).length) {
+        const findings = el('details');
+        findings.appendChild(el('summary', '', `查看原文依据与规则（${page.findings.length} 条）`));
+        page.findings.forEach(finding => {
+          findings.appendChild(el('div', finding.actionable ? 'warn' : 'prog', finding.message));
+          findings.appendChild(el('blockquote', '', finding.quote));
+        });
+        details.appendChild(findings);
+      }
+      card.appendChild(details);
+    });
+    body.appendChild(card);
+  });
+  if ((review.unchecked || []).length) {
+    const details = el('details', 'prog');
+    details.appendChild(el('summary', '', `未完成官网核验的景点（${review.unchecked.length}）`));
+    review.unchecked.forEach(item => details.appendChild(el('div', '', `${item.name}：${item.reason}`)));
+    body.appendChild(details);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+/* ---------- 设置面板 ---------- */
+const modal = document.getElementById('settingsModal');
+const gearBtn = document.getElementById('gearBtn');
+const modelSelect = document.getElementById('modelSelect');
+const modelInput = document.getElementById('modelInput');
+const hostInput = document.getElementById('hostInput');
+const keyInput = document.getElementById('keyInput');
+const keyState = document.getElementById('keyState');
+const settingsTip = document.getElementById('settingsTip');
+const settingsNotes = document.getElementById('settingsNotes');
+const saveSettingsBtn = document.getElementById('saveSettings');
+
+function noteLine(cls, text) {
+  const div = el('div', cls, text);
+  settingsNotes.appendChild(div);
+}
+
+async function loadSettings() {
+  settingsNotes.textContent = '';
+  try {
+    const resp = await fetch('/api/settings');
+    const data = await resp.json();
+    const s = data.settings || {};
+    modelSelect.innerHTML = '';
+    const models = data.models || [];
+    const current = s.model || '';
+    const names = models.includes(current) || !current ? models : [current].concat(models);
+    names.forEach(name => {
+      const opt = el('option', '', models.includes(name) ? name : name + '（当前，未下载）');
+      opt.value = name;
+      modelSelect.appendChild(opt);
+    });
+    if (current) modelSelect.value = current;
+    modelInput.value = '';
+    hostInput.value = s.ollama_host || '';
+    keyInput.value = '';
+    keyState.textContent = s.amap_configured ? `已配置 ${s.amap_key_masked}` : '未配置';
+    settingsTip.textContent = data.ollama ? '模型服务在线' : '模型服务未启动（离线仍可用）';
+  } catch (err) {
+    noteLine('err', '读取设置失败：' + err);
+  }
+}
+
+function openSettings() {
+  modal.classList.add('open');
+  loadSettings();
+}
+function closeSettings() {
+  modal.classList.remove('open');
+}
+
+gearBtn.onclick = openSettings;
+document.getElementById('closeSettings').onclick = closeSettings;
+modal.onclick = event => { if (event.target === modal) closeSettings(); };
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeSettings();
+});
+
+saveSettingsBtn.onclick = async () => {
+  const payload = {};
+  const typedModel = modelInput.value.trim();
+  const chosen = typedModel || modelSelect.value;
+  if (chosen) payload.model = chosen;
+  if (hostInput.value.trim()) payload.ollama_host = hostInput.value.trim();
+  if (keyInput.value.trim()) payload.amap_key = keyInput.value.trim();
+
+  settingsNotes.textContent = '';
+  saveSettingsBtn.disabled = true;
+  settingsTip.textContent = '正在校验并保存…';
+  try {
+    const resp = await fetch('/api/settings', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    (data.changes || []).forEach(text => noteLine('ok', '· ' + text));
+    (data.errors || []).forEach(text => noteLine('err', '· ' + text));
+    (data.warnings || []).forEach(text => noteLine('ok', '· ' + text));
+    if (data.ok && !payload.amap_key && !payload.model && !payload.ollama_host) {
+      noteLine('ok', '· 没有需要修改的项');
+    }
+    if (data.ok) {
+      settingsTip.textContent = '已保存到 .env，立即生效';
+      keyInput.value = '';
+      await loadSettings();
+      fetch('/api/health').then(r => r.json()).then(d => {
+        dot.className = 'dot' + (d.ollama ? ' on' : '');
+        statusText.textContent = d.ollama ? `模型在线 · ${d.model}` : '模型未启动（离线模式可用）';
+        const info = document.getElementById('buildInfo');
+        if (info) info.textContent = `构建 ${d.build || '?'} · 城市数据 ${d.cities || 0} 个 · 高德 ${d.amap ? '已配' : '未配'}`;
+      });
+    } else {
+      settingsTip.textContent = '没保存，先看下面的原因';
+    }
+  } catch (err) {
+    noteLine('err', '保存失败：' + err);
+    settingsTip.textContent = '保存失败';
+  } finally {
+    saveSettingsBtn.disabled = false;
+  }
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "city": "北京",
+      "name": "故宫博物院",
+      "aliases": ["故宫", "故宫博物院"],
+      "url": "https://www.dpm.org.cn/Visit.html",
+      "domains": ["www.dpm.org.cn", "dpm.org.cn"]
+    },
+    {
+      "city": "北京",
+      "name": "中国国家博物馆",
+      "aliases": ["中国国家博物馆", "国家博物馆"],
+      "url": "https://www.chnmuseum.cn/",
+      "domains": ["www.chnmuseum.cn", "chnmuseum.cn"]
+    },
+    {
+      "city": "成都",
+      "name": "成都博物馆",
+      "aliases": ["成都博物馆", "成都博物馆新馆"],
+      "url": "https://www.cdmuseum.com/",
+      "domains": ["www.cdmuseum.com", "cdmuseum.com"]
+    }
+  ]
+}

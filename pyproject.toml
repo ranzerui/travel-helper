@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "travel-planner-local"
+version = "0.1.0"
+description = "Local travel planning with timeline validation and browser evidence"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+browser = ["browser-use==0.13.14"]
+
+[project.scripts]
+travel-planner = "travel_planner.cli:main"
+travel-planner-web = "travel_planner.web:main"
+
+[tool.setuptools.packages.find]
+include = ["travel_planner*", "workers*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+travel_planner = ["data/*.json", "webui/*.html", "webui/*.css", "webui/*.js", "official_sources.json"]
